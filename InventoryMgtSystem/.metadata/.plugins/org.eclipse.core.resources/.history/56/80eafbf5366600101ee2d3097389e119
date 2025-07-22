@@ -1,0 +1,264 @@
+package com.dashboardinventory.services.impl;
+
+import java.io.File;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+import org.modelmapper.ModelMapper;
+import org.modelmapper.TypeToken;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import com.dashboardinventory.dtos.ProductDTO;
+import com.dashboardinventory.dtos.Response;
+import com.dashboardinventory.exceptions.NotFoundException;
+import com.dashboardinventory.models.Category;
+import com.dashboardinventory.models.Product;
+import com.dashboardinventory.repositories.CategoryRepository;
+import com.dashboardinventory.repositories.ProductRepository;
+import com.dashboardinventory.services.ProductService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class ProductServiceImpl implements ProductService{
+	
+
+	private final ProductRepository productRepository;
+    private final ModelMapper modelMapper;
+    private final CategoryRepository categoryRepository;
+    
+    private static final String IMAGE_DIRECTORY = System.getProperty("user.dir") + "C:/Users/mayur/OneDrive/Documents/images";
+
+    //AFTER YOUR FRONTEND IS SETUP CHANGE THE IMAGE DIRECTORY TO YHE FRONTEND YOU ARE USING
+    private static final String IMAGE_DIRECTORY_2 = "C:/Inventory/inventory_frontend/public/products/";
+
+	
+    private static final Logger log = LoggerFactory.getLogger(ProductServiceImpl.class);
+    
+    public ProductServiceImpl(ProductRepository productRepository, ModelMapper modelMapper,
+			CategoryRepository categoryRepository) {
+		super();
+		this.productRepository = productRepository;
+		this.modelMapper = modelMapper;
+		this.categoryRepository = categoryRepository;
+	}
+
+	@Override
+	public Response saveProduct(ProductDTO productDTO, MultipartFile imageFile) {
+		// TODO Auto-generated method stub
+		Category category = categoryRepository.findById(productDTO.getCategoryId())
+                .orElseThrow(() -> new NotFoundException("Category Not Found"));
+
+        //map our dto to product entity
+        Product productToSave = Product.builder()
+                .name(productDTO.getName())
+                .sku(productDTO.getSku())
+                .price(productDTO.getPrice())
+                .stockQuantity(productDTO.getStockQuantity())
+                .description(productDTO.getDescription())
+                .category(category)
+                .build();
+
+        if (imageFile != null && !imageFile.isEmpty()) {
+            log.info("Image file exist");
+//            String imagePath = saveImage(imageFile); //use this when you haven't setup your frontend
+            String imagePath = saveImage2(imageFile); //use this when you ave set up your frontend locally but haven't deployed to produiction
+
+            System.out.println("IMAGE URL IS: " + imagePath);
+            productToSave.setImageUrl(imagePath);
+        }
+
+        //save the product entity
+        productRepository.save(productToSave);
+
+        return Response.builder()
+                .status(200)
+                .message("Product successfully saved")
+                .build();
+	}
+
+	@Override
+	public Response updateProduct(ProductDTO productDTO, MultipartFile imageFile) {
+		// TODO Auto-generated method stub
+		Product existingProduct = productRepository.findById(productDTO.getProductId())
+                .orElseThrow(() -> new NotFoundException("Product Not Found"));
+
+        //check if image is associated with the product to update and upload
+        if (imageFile != null && !imageFile.isEmpty()) {
+//            String imagePath = saveImage(imageFile); //use this when you haven't setup your frontend
+            String imagePath = saveImage2(imageFile); //use this when you ave set up your frontend locally but haven't deployed to produiction
+
+            System.out.println("IMAGE URL IS: " + imagePath);
+            existingProduct.setImageUrl(imagePath);
+        }
+
+        //check if category is to be chanegd for the products
+        if (productDTO.getCategoryId() != null && productDTO.getCategoryId() > 0) {
+            Category category = categoryRepository.findById(productDTO.getCategoryId())
+                    .orElseThrow(() -> new NotFoundException("Category Not Found"));
+            existingProduct.setCategory(category);
+        }
+
+        //check if product fields is to be changed and update
+        if (productDTO.getName() != null && !productDTO.getName().isBlank()) {
+            existingProduct.setName(productDTO.getName());
+        }
+
+        if (productDTO.getSku() != null && !productDTO.getSku().isBlank()) {
+            existingProduct.setSku(productDTO.getSku());
+        }
+
+        if (productDTO.getDescription() != null && !productDTO.getDescription().isBlank()) {
+            existingProduct.setDescription(productDTO.getDescription());
+        }
+
+        if (productDTO.getPrice() != null && productDTO.getPrice().compareTo(BigDecimal.ZERO) >= 0) {
+            existingProduct.setPrice(productDTO.getPrice());
+        }
+
+        if (productDTO.getStockQuantity() != null && productDTO.getStockQuantity() >= 0) {
+            existingProduct.setStockQuantity(productDTO.getStockQuantity());
+        }
+        //update the product
+        productRepository.save(existingProduct);
+
+        //Build our response
+        return Response.builder()
+                .status(200)
+                .message("Product Updated successfully")
+                .build();
+	}
+
+	@Override
+	public Response getAllProducts() {
+		// TODO Auto-generated method stub
+		List<Product> productList = productRepository.findAll(Sort.by(Sort.Direction.DESC, "id"));
+
+        List<ProductDTO> productDTOList = modelMapper.map(productList, new TypeToken<List<ProductDTO>>() {
+        }.getType());
+
+        return Response.builder()
+                .status(200)
+                .message("success")
+                .products(productDTOList)
+                .build();
+	}
+
+	@Override
+	public Response getProductById(Long id) {
+		// TODO Auto-generated method stub
+		Product product = productRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Product Not Found"));
+
+        return Response.builder()
+                .status(200)
+                .message("success")
+                .product(modelMapper.map(product, ProductDTO.class))
+                .build();
+	}
+
+	@Override
+	public Response deleteProduct(Long id) {
+		// TODO Auto-generated method stub
+		productRepository.findById(id)
+        .orElseThrow(() -> new NotFoundException("Product Not Found"));
+
+productRepository.deleteById(id);
+
+return Response.builder()
+        .status(200)
+        .message("Product Deleted successfully")
+        .build();
+	}
+
+	@Override
+	public Response searchProduct(String input) {
+		// TODO Auto-generated method stub
+		List<Product> products = productRepository.findByNameContainingOrDescriptionContaining(input, input);
+
+        if (products.isEmpty()) {
+            throw new NotFoundException("Product Not Found");
+        }
+
+        List<ProductDTO> productDTOList = modelMapper.map(products, new TypeToken<List<ProductDTO>>() {
+        }.getType());
+
+        return Response.builder()
+                .status(200)
+                .message("success")
+                .products(productDTOList)
+                .build();
+	}
+	
+	
+	private String saveImage(MultipartFile imageFile) {
+        //validate image and check if it is greater than 1GIB
+        if (!imageFile.getContentType().startsWith("image/") || imageFile.getSize() > 1024 * 1024 * 1024) {
+            throw new IllegalArgumentException("Only image files under 1GIG is allowed");
+        }
+
+        //create the directory if it doesn't exist
+        File directory = new File(IMAGE_DIRECTORY);
+
+        if (!directory.exists()) {
+            directory.mkdir();
+            log.info("Directory was created");
+        }
+        //generate unique file name for the image
+        String uniqueFileName = UUID.randomUUID() + "_" + imageFile.getOriginalFilename();
+
+        //Get the absolute path of the image
+        String imagePath = IMAGE_DIRECTORY + uniqueFileName;
+
+        try {
+            File destinationFile = new File(imagePath);
+            imageFile.transferTo(destinationFile); //we are writing the image to this folder
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error saving Image: " + e.getMessage());
+        }
+        return imagePath;
+
+    }
+
+    //This saved image to the public folder in your frontend
+    //Use this if your have setup your frontend
+    private String saveImage2(MultipartFile imageFile) {
+        //validate image and check if it is greater than 1GIB
+        if (!imageFile.getContentType().startsWith("images/") || imageFile.getSize() > 1024 * 1024 * 1024) {
+            throw new IllegalArgumentException("Only image files under 1GIG is allowed");
+        }
+
+        //create the directory if it doesn't exist
+        File directory = new File(IMAGE_DIRECTORY_2);
+
+        if (!directory.exists()) {
+            directory.mkdir();
+            log.info("Directory was created");
+        }
+        //generate unique file name for the image
+        String uniqueFileName = UUID.randomUUID() + "_" + imageFile.getOriginalFilename();
+
+        //Get the absolute path of the image
+        String imagePath = IMAGE_DIRECTORY_2 + uniqueFileName;
+
+        try {
+            File destinationFile = new File(imagePath);
+            imageFile.transferTo(destinationFile); //we are writing the image to this folder
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Error saving Image: " + e.getMessage());
+        }
+        return "products/"+uniqueFileName;
+
+
+    }
+    
+    
+}

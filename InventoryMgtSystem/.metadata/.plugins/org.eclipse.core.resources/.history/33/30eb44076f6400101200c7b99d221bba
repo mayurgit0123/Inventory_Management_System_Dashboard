@@ -1,0 +1,5 @@
+package com.dashboardinventory.services.impl;
+
+public class CategoryServiceImpl {
+
+}

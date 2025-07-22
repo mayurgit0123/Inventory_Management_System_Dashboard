@@ -1,0 +1,5 @@
+package com.dashboardinventory.controllers;
+
+public class TransactionController {
+
+}

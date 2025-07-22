@@ -1,0 +1,5 @@
+package com.dashboardinventory.services;
+
+public interface CategoryService {
+
+}

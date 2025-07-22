@@ -1,0 +1,114 @@
+package com.dashboardinventory.services.impl;
+
+import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.dashboardinventory.dtos.LoginRequest;
+import com.dashboardinventory.dtos.RegisterRequest;
+import com.dashboardinventory.dtos.Response;
+import com.dashboardinventory.dtos.UserDTO;
+import com.dashboardinventory.enums.UserRole;
+import com.dashboardinventory.models.User;
+import com.dashboardinventory.repositories.UserRepository;
+import com.dashboardinventory.security.JwtUtils;
+import com.dashboardinventory.services.UserService;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Service
+@RequiredArgsConstructor
+@Slf4j
+public class UserServiceImpl implements UserService {
+	
+	
+	 	private final UserRepository userRepository;
+	    private final PasswordEncoder passwordEncoder;
+	    private final ModelMapper modelMapper;
+	    private final JwtUtils jwtUtils;
+	    
+	    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+	    
+		public UserServiceImpl(UserRepository userRepository, PasswordEncoder passwordEncoder, ModelMapper modelMapper,
+				JwtUtils jwtUtils) {
+			super();
+			this.userRepository = userRepository;
+			this.passwordEncoder = passwordEncoder;
+			this.modelMapper = modelMapper;
+			this.jwtUtils = jwtUtils;
+		}
+
+		@Override
+		public Response registerUser(RegisterRequest registerRequest) {
+			// TODO Auto-generated method stub
+			UserRole role = UserRole.MANAGER;
+
+	        if (registerRequest.getRole() != null) {
+	            role = registerRequest.getRole();
+	        }
+
+	        User userToSave = User.builder()
+	                .name(registerRequest.getName())
+	                .email(registerRequest.getEmail())
+	                .password(passwordEncoder.encode(registerRequest.getPassword()))
+	                .phoneNumber(registerRequest.getPhoneNumber())
+	                .role(role)
+	                .build();
+
+	        userRepository.save(userToSave);
+
+	        return Response.builder()
+	                .status(200)
+	                .message("User was successfully registered")
+	                .build();
+		}
+
+		@Override
+		public Response loginUser(LoginRequest loginRequest) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Response getAllUsers() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public User getCurrentLoggedInUser() {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Response getUserById(Long id) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Response updateUser(Long id, UserDTO userDTO) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Response deleteUser(Long id) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
+		@Override
+		public Response getUserTransactions(Long id) {
+			// TODO Auto-generated method stub
+			return null;
+		}
+		
+		
+	   
+
+}

@@ -1,0 +1,5 @@
+package com.dashboardinventory.repositories;
+
+public interface ProductRepository {
+
+}

@@ -1,0 +1,5 @@
+package com.dashboardinventory.models;
+
+public class Transaction {
+
+}

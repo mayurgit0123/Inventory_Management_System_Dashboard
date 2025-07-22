@@ -1,0 +1,5 @@
+package com.dashboardinventory.specification;
+
+public class TransactionFilter {
+
+}

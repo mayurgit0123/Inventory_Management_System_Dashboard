@@ -1,0 +1,5 @@
+package com.dashboardinventory.security;
+
+public class CorsConfig {
+
+}
